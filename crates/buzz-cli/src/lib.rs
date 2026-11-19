@@ -123,6 +123,7 @@ fn env_output_format(value: Option<&std::ffi::OsStr>) -> OutputFormat {
 #[derive(Parser)]
 #[command(
     name = "buzz",
+    version,
     about = "Buzz CLI — interact with a Buzz relay",
     long_about = "\
 Buzz CLI — interact with a Buzz relay
@@ -2868,6 +2869,23 @@ mod tests {
         assert!(with(&[]).is_ok());
         assert!(with(&["--reply-to", "b"]).is_err());
         assert!(with(&["--broadcast"]).is_err());
+    }
+
+    /// `--version` is wired via `#[command(version)]`; `brew test` and release
+    /// tooling rely on it printing `buzz <workspace version>` and exiting 0.
+    #[test]
+    fn version_flag_reports_workspace_version() {
+        use clap::error::ErrorKind;
+        use clap::Parser;
+        let err = match Cli::try_parse_from(["buzz", "--version"]) {
+            Ok(_) => panic!("--version prints and exits instead of parsing"),
+            Err(e) => e,
+        };
+        assert_eq!(err.kind(), ErrorKind::DisplayVersion);
+        assert_eq!(
+            err.to_string(),
+            format!("buzz {}\n", env!("CARGO_PKG_VERSION"))
+        );
     }
 
     #[test]
